@@ -1,0 +1,32 @@
+---
+- name: Setup Kubernetes Cluster
+  hosts: master
+  become: yes
+
+  tasks:
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Install Kubernetes components
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - kubelet
+        - kubeadm
+        - kubectl
+
+    - name: Initialize Kubernetes Master
+      command: kubeadm init --apiserver-advertise-address={{ ansible_default_ipv4.address }}
+      args:
+        creates: /etc/kubernetes/admin.conf
+
+- name: Configure Worker Nodes
+  hosts: workers
+  become: yes
+
+  tasks:
+    - name: Join Worker Nodes to Cluster
+      command: "{{ hostvars['control_node'].kubeadm_join.stdout }}"
